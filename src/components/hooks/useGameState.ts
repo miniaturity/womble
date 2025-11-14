@@ -21,6 +21,7 @@ interface GameState {
     greens: number;
     yellows: number;
     grays: number;
+    keys: Key[][];
   }
 }
 
@@ -44,9 +45,47 @@ const defaultState: GameState = {
     guesses: 0,
     greens: 0,
     yellows: 0,
-    grays: 0
+    grays: 0,
+    keys: [
+          [
+        { c: "q", col: "gray" },
+        { c: "w", col: "gray" },
+        { c: "e", col: "gray" },
+        { c: "r", col: "gray" },
+        { c: "t", col: "gray" },
+        { c: "y", col: "gray" },
+        { c: "u", col: "gray" },
+        { c: "i", col: "gray" },
+        { c: "o", col: "gray" },
+        { c: "p", col: "gray" }
+      ],
+      [
+        { c: "a", col: "gray" },
+        { c: "s", col: "gray" },
+        { c: "d", col: "gray" },
+        { c: "f", col: "gray" },
+        { c: "g", col: "gray" },
+        { c: "h", col: "gray" },
+        { c: "j", col: "gray" },
+        { c: "k", col: "gray" },
+        { c: "l", col: "gray" }
+      ],
+      [
+        { c: "del", col: "gray" },
+        { c: "z", col: "gray" },
+        { c: "x", col: "gray" },
+        { c: "c", col: "gray" },
+        { c: "v", col: "gray" },
+        { c: "b", col: "gray" },
+        { c: "n", col: "gray" },
+        { c: "m", col: "gray" },
+        { c: "go", col: "gray" }
+      ]
+    ]
   }
 }
+
+type Key = { c: string, col: LetterState }
 
 const wordsFilePath = "words/words.txt";
 const xordsFilePath = "words/xords.txt";
@@ -339,6 +378,22 @@ export function useGameState() {
     });
   }, []);
 
+  // ==
+
+  const setLetterCol = useCallback((n: string, c: LetterState) => {
+    setGs(prev => ({
+      ...prev,
+      info: {
+        ...prev.info,
+        keys: [
+          ...prev.info.keys.map(j => 
+            j.map(k => k.c === n ? { ...k, col: c } : k )
+          )
+        ]
+      }
+    }))
+  }, []);
+
   useEffect(() => {
     const a = async () => {
       await getWords(wordsFilePath)
@@ -391,7 +446,8 @@ export function useGameState() {
       setGuesses,
       setMult,
       setWord,
-      setHistory
+      setHistory,
+      setLetterCol
     },
     
   };

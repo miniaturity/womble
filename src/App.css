@@ -1,11 +1,17 @@
 :root {
+  /* Keyboard */
+  --keys: 34px;
+  --key: #c0bfbf;
+  --keyshadow: #979797;
+  --keyfocus: #d1d1d1;
+  --keyrad: 4px;
 
   /* Colors */
   --green: #6ca965;
   --yellow: #c8b653;
   --gray: #787c7f;
-
-
+  
+  /* misc */
   --sqs: 55px;
   --fs: 2rem;
 
@@ -30,7 +36,6 @@
     translate: 0 0;
   }
 }
-
 
 @keyframes flip {
   0% {
@@ -147,6 +152,47 @@ header {
 
   z-index: 2;
 }
+
+#keyboard {
+  display: flex;
+  flex-direction: column;
+}
+
+.k__row {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+
+  justify-content: center;
+}
+
+.key {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: var(--key);
+  box-shadow: 0 5px var(--keyshadow);
+  border-radius: var(--keyrad);
+
+  margin: var(--margin);
+  width: var(--keys);
+  height: calc(var(--keys) * 1.2);
+
+  font-family: "tommy";
+  font-size: calc(var(--fs) / 1.75);
+  transition: all 0.2s ease-in-out;
+
+  &:focus,
+  &:hover {
+    outline: none;
+    cursor: pointer;
+    background: var(--keyfocus);
+    transform: translateY(-5px);
+    z-index: 2;
+  }
+}
+
 
 @font-face {
   font-family: "tommy";

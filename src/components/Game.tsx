@@ -1,33 +1,15 @@
-import React, { useEffect, useState } from "react";
-import { useGameState, Word } from "./hooks/useGameState";
+import React, { useCallback, useEffect, useState } from "react";
+import { LetterState, useGameState, Word } from "./hooks/useGameState";
 
 type GameStateType = ReturnType<typeof useGameState>
 
-const keys = [
-  ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"],
-  ["a", "s", "d", "f", "g", "h", "j", "k", "l"],
-  ["del", "z", "x", "c", "v", "b", "n", "m", "go"]
-]
 
 
 const Game: React.FC = () => {
   const g = useGameState();
   const [inputWord, setInputWord] = useState<string>("");
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (/^[a-zA-Z]$/.test(e.key)) {
-        setInputWord(prev => prev.length < 5 ? prev + e.key.toUpperCase() : prev);
-      }
-      if (e.key === "Backspace") {
-        setInputWord(prev => prev.slice(0, -1));
-      }
-      if (e.key === "Enter") {
-        handleSubmit();
-      }
-    };
-
-    const handleSubmit = () => {
+  const handleSubmit = useCallback(() => {
       if (inputWord.length !== 5) return;
       if (!g.words.words || !g.words.xords) return;
       
@@ -55,12 +37,12 @@ const Game: React.FC = () => {
           guessAsWord.push({ c: upperInput[i], state: "green" });
           remainingLetters[upperInput[i]]--;
         } else {
-          guessAsWord.push({ c: upperInput[i], state: "gray" }); // placeholder
+          guessAsWord.push({ c: upperInput[i], state: "gray" }); 
         }
       }
       
       for (let i = 0; i < upperInput.length; i++) {
-        if (guessAsWord[i].state === "gray") { // not green
+        if (guessAsWord[i].state === "gray") { 
           if (remainingLetters[upperInput[i]] && remainingLetters[upperInput[i]] > 0) {
             guessAsWord[i] = { c: upperInput[i], state: "yellow" };
             remainingLetters[upperInput[i]]--;
@@ -70,11 +52,25 @@ const Game: React.FC = () => {
       
       g.guess(guessAsWord);
       setInputWord("");
+    }, [g, inputWord]);
+
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (/^[a-zA-Z]$/.test(e.key)) {
+        setInputWord(prev => prev.length < 5 ? prev + e.key.toUpperCase() : prev);
+      }
+      if (e.key === "Backspace") {
+        setInputWord(prev => prev.slice(0, -1));
+      }
+      if (e.key === "Enter") {
+        handleSubmit();
+      }
     };
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [inputWord, g]);
+  }, [inputWord, g, handleSubmit]);
 
   return (
     <div className="main" style={{ visibility: g.loading ? "hidden" : "visible" }}>
@@ -103,14 +99,38 @@ const Game: React.FC = () => {
           </div>
         </div>
         <div id="keyboard">
-          <div id="k__row1">
-            
+          <div className="k__row">
+            {g.gs.info.keys[0].map((k, index) =>
+                <Key 
+                key={index} 
+                c={k.c}
+                color={k.col}
+                handlers={{ handleSubmit, setInputWord }}
+                />
+              )
+            }
           </div>
-          <div id="k__row2">
-
+          <div className="k__row">
+            {g.gs.info.keys[1].map((k, index) =>
+                <Key 
+                key={index} 
+                c={k.c}
+                color={k.col}
+                handlers={{ handleSubmit, setInputWord }}
+                />
+              )
+            }
           </div>
-          <div id="k__row3">
-
+          <div className="k__row">
+            {g.gs.info.keys[2].map((k, index) =>
+                <Key 
+                key={index} 
+                c={k.c}
+                color={k.col}
+                handlers={{ handleSubmit, setInputWord }}
+                />
+              )
+            }
           </div>
         </div>
       </center>
@@ -122,23 +142,31 @@ const Game: React.FC = () => {
 
 interface KeyProps {
   c: string;
-  setInputWord: React.Dispatch<React.SetStateAction<string>>;
+  color: LetterState;
+  handlers: {
+    setInputWord: React.Dispatch<React.SetStateAction<string>>;
+    handleSubmit: () => void;
+  }
+  
 }
 
-const Key: React.FC<KeyProps> = ({ c, setInputWord }) => {
+const Key: React.FC<KeyProps> = ({ c, handlers, color }) => {
+  const { setInputWord, handleSubmit } = handlers;
 
   const handleClick = (k: string) => {
     if (k === "del") {
       setInputWord(prev => prev.slice(0, -1));
     } else if (k === "go") {
-      
+      handleSubmit();
+    } else {
+      setInputWord(prev => prev.length < 5 ? prev + k.toUpperCase() : prev);
     }
   }
 
   return (
-    <div className="key" id={`key_${c}`}>
+    <button className={`key k_${color}`} id={`key_${c}`} onClick={() => handleClick(c)}>
       {c}
-    </div>
+    </button>
   )
 }
 
