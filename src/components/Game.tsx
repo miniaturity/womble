@@ -1,33 +1,23 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { LetterState, useGameState, Word } from "./hooks/useGameState";
-import { randomUUID } from "crypto";
 
 
 const Game: React.FC = () => {
   const g = useGameState();
   const [inputWord, setInputWord] = useState<string>("");
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (/^[a-zA-Z]$/.test(e.key)) appendLetter(e.key);
-      if (e.key === "Backspace") backspaceLetter();
-      if (e.key === "Enter") handleSubmit();
-    }
 
-    document.addEventListener("keydown", handleKeyDown);
-  }, []);
-
-  const appendLetter = (l: string) => {
+  const appendLetter = useCallback((l: string) => {
     if (inputWord.length === 5) return;
     setInputWord(prev => prev + l);
-  }
+  }, [inputWord]);
 
-  const backspaceLetter = () => {
+  const backspaceLetter = useCallback(() => {
     if (inputWord.length === 0) return;
     setInputWord(prev => prev.slice(0, -1));
-  }
+  }, [inputWord]);
 
-  const parseGuess = (w: string): Word | null => {
+  const parseGuess = useCallback((w: string): Word | null => {
     let guessAsWord: Word = [];
     const correctWord = g.gs.words.word;
     if (!correctWord) return null;
@@ -43,22 +33,35 @@ const Game: React.FC = () => {
     }
 
     return guessAsWord;
-  }
+  }, [g.gs.words.word]);
 
-  const handleSubmit = () => {
+  const isValidWord = useCallback((w: string) => {
+    if (!g.words.words || !g.words.xords) return;
+    if (!g.words.words.includes(w) && !g.words.xords.includes(w)) return false;
+    return true;
+  }, [g.words.words, g.words.xords]);
+
+  const handleSubmit = useCallback(() => {
     if (inputWord.length !== 5) return;
     if (isValidWord(inputWord)) {
       const guess = parseGuess(inputWord);
       if (!guess) throw new Error("Invalid guess: Failed to parse as guess.");
       g.guess(guess);
+      setInputWord("");
     }
-  }
+  }, [inputWord, g, isValidWord, parseGuess])
 
-  const isValidWord = (w: string) => {
-    if (!g.words.words || !g.words.xords) return;
-    if (!g.words.words.includes(w) || !g.words.xords.includes(w)) return false;
-    return true;
-  }
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (/^[a-zA-Z]$/.test(e.key)) appendLetter(e.key);
+      if (e.key === "Backspace") backspaceLetter();
+      if (e.key === "Enter") handleSubmit();
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [g, inputWord, appendLetter, backspaceLetter, handleSubmit]);
 
   return (
     <div className="main" style={{ visibility: g.loading ? "hidden" : "visible" }}>
@@ -70,8 +73,8 @@ const Game: React.FC = () => {
       <center>
 
         <div id="history">
-          {g.gs.words.history.map(w =>
-            <HistoryWord word={w} id={randomUUID()}/>
+          {g.gs.words.history.map((w, index) =>
+            <HistoryWord word={w} id={String(index)}/>
           )}
         </div>
         <div id="input">
@@ -126,7 +129,7 @@ const HistoryWord: React.FC<HistoryWordProps> = ({ id, word }) => {
   return (
     <div className="h__word" id={id}>
       {word.map((w, index) => {
-        const uuid = randomUUID();
+        const uuid = crypto.randomUUID();
         return (
           <div id={uuid} className={w.state}
             style={{"--i": index} as React.CSSProperties}

@@ -54,7 +54,6 @@ const xordsFilePath = "words/xords.txt";
 type Mult = { combo: number, mult: number, color: string };
 type Multipliers = Mult[];
 const multipliers: Multipliers = [
-  // combo: mult
   {
     combo: 10,
     mult: 1.25,
@@ -88,20 +87,6 @@ export function useGameState() {
   const [xords, setXords] = useState<string[]>();
   const [loading, setLoading] = useState<boolean>(true);
 
-  useEffect(() => {
-    const a = async () => {
-      await getWords(wordsFilePath)
-      .then(setWords)
-      .catch(console.error);
-      await getWords(xordsFilePath)
-        .then(setXords)
-        .catch(console.error);
-      setLoading(false);
-      setWord();
-    }
-    
-    a();
-  }, []);
 
   const getWords = useCallback(async (path: string): Promise<string[] | undefined> => {
     try {
@@ -119,82 +104,164 @@ export function useGameState() {
   }, []);
 
   const setWord = useCallback(() => {
-    if (!words) return;
+    if (!words || words.length === 0) return;
     const w = words[Math.floor(Math.random() * words.length)];
-    setGs({ ...gs, words: { ...gs.words, word: w } });
-  }, []);
+    setGs(prev => ({ 
+      ...prev, 
+      words: { ...prev.words, word: w } 
+    }));
+  }, [words]);
 
   // ==
 
   const setHistory = useCallback((w: Word[]) => {
-    setGs({ ...gs, words: { ...gs.words, history: w }})
+    setGs(prev => ({ 
+      ...prev, 
+      words: { ...prev.words, history: w }
+    }));
   }, []);
 
   const appendHistory = useCallback((w: Word) => {
-    setHistory([...gs.words.history, w]);
+    setGs(prev => ({ 
+      ...prev, 
+      words: { ...prev.words, history: [...prev.words.history, w] }
+    }));
   }, []);
 
   const clearHistory = useCallback(() => {
-    setHistory([]);
+    setGs(prev => ({ 
+      ...prev, 
+      words: { ...prev.words, history: [] }
+    }));
   }, []);
 
   // ==
 
-  const setCombo = useCallback((n: number) => {
-    autoMult();
-    setGs({ ...gs, score: { ...gs.score, mult: { ...gs.score.mult, combo: n } }});
+  const autoMult = useCallback(() => {
+    setGs(prev => {
+      const sortedMults = [...multipliers].sort((a, b) => b.combo - a.combo);
+      
+      const applicableMult = sortedMults.find(m => prev.score.mult.combo >= m.combo);
+      
+      if (applicableMult) {
+        return {
+          ...prev,
+          score: {
+            ...prev.score,
+            mult: {
+              ...prev.score.mult,
+              mult: applicableMult.mult,
+              color: applicableMult.color
+            }
+          }
+        };
+      }
+      
+      return prev;
+    });
   }, []);
 
+  const setCombo = useCallback((n: number) => {
+    autoMult();
+
+    setGs(prev => {
+      const newState = { 
+        ...prev, 
+        score: { 
+          ...prev.score, 
+          mult: { ...prev.score.mult, combo: n } 
+        }
+      };
+      
+      const sortedMults = [...multipliers].sort((a, b) => b.combo - a.combo);
+      const applicableMult = sortedMults.find(m => n >= m.combo);
+      
+      if (applicableMult) {
+        newState.score.mult.mult = applicableMult.mult;
+        newState.score.mult.color = applicableMult.color;
+      }
+      
+      return newState;
+    });
+  }, [autoMult]);
+
   const incrementCombo = useCallback(() => {
-    setCombo(gs.score.mult.combo + 1);
+    setGs(prev => {
+      const newCombo = prev.score.mult.combo + 1;
+      const newState = { 
+        ...prev, 
+        score: { 
+          ...prev.score, 
+          mult: { ...prev.score.mult, combo: newCombo } 
+        }
+      };
+      
+      const sortedMults = [...multipliers].sort((a, b) => b.combo - a.combo);
+      const applicableMult = sortedMults.find(m => newCombo >= m.combo);
+      
+      if (applicableMult) {
+        newState.score.mult.mult = applicableMult.mult;
+        newState.score.mult.color = applicableMult.color;
+      }
+      
+      return newState;
+    });
   }, []);
 
   const resetCombo = useCallback(() => {
-    setCombo(0);
+    setGs(prev => ({ 
+      ...prev, 
+      score: { 
+        ...prev.score, 
+        mult: { combo: 0, mult: 1, color: "#000" } 
+      }
+    }));
   }, []);
 
   // ==
 
   const setMult = useCallback((n: number) => {
-    setGs({ ...gs, score: { ...gs.score, mult: { ...gs.score.mult, mult: n } }});
-  }, []);
-
-  const setMultCol = useCallback((c: string) => {
-    setGs({ ...gs, score: { ...gs.score, mult: { ...gs.score.mult, color: c }}})
-  }, []);
-
-  const autoMult = useCallback(() => {
-    const sortedMults = [...multipliers].sort((a, b) => a.combo - b.combo)
-    
-    sortedMults.forEach(m => {
-      if (m.combo > gs.score.mult.combo) {
-        setMult(m.mult);
-        setMultCol(m.color);
-        return;
+    setGs(prev => ({ 
+      ...prev, 
+      score: { 
+        ...prev.score, 
+        mult: { ...prev.score.mult, mult: n } 
       }
-    })
+    }));
   }, []);
 
   // ==
 
   const setPoints = useCallback((n: number) => {
-    setGs({ ...gs, score: { ...gs.score, points: n }});
+    setGs(prev => ({ 
+      ...prev, 
+      score: { ...prev.score, points: n }
+    }));
   }, []);
 
   // ==
 
   const setStreak = useCallback((n: number) => {
-    setGs({ ...gs, score: { ...gs.score, streak: n }});
+    setGs(prev => ({ 
+      ...prev, 
+      score: { ...prev.score, streak: n }
+    }));
   }, []);
 
   // ==
 
   const setLives = useCallback((n: number) => {
-    setGs({ ...gs, score: { ...gs.score, lives: n }});
+    setGs(prev => ({ 
+      ...prev, 
+      score: { ...prev.score, lives: n }
+    }));
   }, []);
 
   const decrementLives = useCallback(() => {
-    setLives(gs.score.lives - 1);
+    setGs(prev => ({ 
+      ...prev, 
+      score: { ...prev.score, lives: prev.score.lives - 1 }
+    }));
   }, []);
 
   const willDie = useMemo(() => gs.score.lives === 1, [gs.score.lives]);
@@ -202,51 +269,95 @@ export function useGameState() {
   // ==
 
   const setSolved = useCallback((b: boolean) => {
-    setGs({ ...gs, info: { ...gs.info, solved: b }});
+    setGs(prev => ({ 
+      ...prev, 
+      info: { ...prev.info, solved: b }
+    }));
   }, []);
 
   // ==
 
   const setSquareCount = useCallback(
     (t: 'green' | 'yellow' | 'gray', n: number) => {
-      setGs({ ...gs, info: {
-        ...gs.info,
-        greens: t === 'green' ? n : gs.info.greens,
-        yellows: t === 'yellow' ? n : gs.info.yellows,
-        grays: t === 'gray' ? n : gs.info.grays
-      }});
+      setGs(prev => ({ 
+        ...prev, 
+        info: {
+          ...prev.info,
+          greens: t === 'green' ? n : prev.info.greens,
+          yellows: t === 'yellow' ? n : prev.info.yellows,
+          grays: t === 'gray' ? n : prev.info.grays
+        }
+      }));
   }, []);
 
   const incrementSquareCount = useCallback(
     (t: 'green' | 'yellow' | 'gray', x: number) => {
-      switch (t) {
-        case 'green':
-          setSquareCount(t, gs.info.greens + x);
-          break;
-        case 'yellow':
-          setSquareCount(t, gs.info.yellows + x);
-          break;
-        case 'gray':
-          setSquareCount(t, gs.info.grays + x);
-          break;
-        default:
-          break;
-      }
+      setGs(prev => {
+        const newInfo = { ...prev.info };
+        switch (t) {
+          case 'green':
+            newInfo.greens += x;
+            break;
+          case 'yellow':
+            newInfo.yellows += x;
+            break;
+          case 'gray':
+            newInfo.grays += x;
+            break;
+        }
+        return { ...prev, info: newInfo };
+      });
   }, []);
 
   // ==
 
   const setGuesses = useCallback((n: number) => {
-    setGs({ ...gs, info: { ...gs.info, guesses: n }});
+    setGs(prev => ({ 
+      ...prev, 
+      info: { ...prev.info, guesses: n }
+    }));
   }, []);
 
   const guess = useCallback((g: Word) => {
-    appendHistory(g);
-    setGuesses(gs.info.guesses + 1);
-    
-    const word = g.map(w => w.c).join("");
-    if (word === gs.words.word) setSolved(true);
+    setGs(prev => {
+      const newGuesses = prev.info.guesses + 1;
+      const word = g.map(w => w.c).join("");
+      const isSolved = word === prev.words.word;
+      
+      return {
+        ...prev,
+        words: {
+          ...prev.words,
+          history: [...prev.words.history, g]
+        },
+        info: {
+          ...prev.info,
+          guesses: newGuesses,
+          solved: isSolved
+        }
+      };
+    });
   }, []);
+
+  useEffect(() => {
+    const a = async () => {
+      await getWords(wordsFilePath)
+        .then(setWords)
+        .catch(console.error);
+      await getWords(xordsFilePath)
+        .then(setXords)
+        .catch(console.error);
+      setLoading(false);
+    }
+    
+    a();
+  }, [getWords]);
+
+  useEffect(() => {
+    if (words && words.length > 0 && !gs.words.word) {
+      setWord();
+    }
+  }, [words, gs.words.word, setWord]);
 
   return {
     gs,
@@ -261,6 +372,9 @@ export function useGameState() {
     incrementSquareCount,
 
     guess,
+
+    appendHistory,
+    clearHistory,
     
     words: {
       words,
@@ -276,12 +390,9 @@ export function useGameState() {
       setSquareCount,
       setGuesses,
       setMult,
+      setWord,
       setHistory
     },
-
-    util: {
-      appendHistory,
-      clearHistory
-    }
+    
   };
 }
