@@ -26,6 +26,17 @@ const Game: React.FC = () => {
         console.log("Invalid word:", upperInput);
         return;
       }
+
+      const isDuplicate = g.gs.words.history.some(historyWord => 
+        historyWord.map(l => l.c).join('') === upperInput
+      );
+      
+      if (isDuplicate) {
+        g.decrementLives();
+        g.resetCombo();
+        setInputWord("");
+        return;
+      }
       
       const correctWord = g.gs.words.word;
       if (!correctWord) return;
@@ -83,8 +94,10 @@ const Game: React.FC = () => {
       else g.addPoints((greenCount * scoreValues.green) + (yellowCount * scoreValues.yellow));
 
       if (greenCount >= 2) g.incrementCombo();
+      else g.resetCombo();
 
       g.guess(guessAsWord);
+      g.resetTime();
       setInputWord("");
     }, [g, inputWord]);
 
@@ -106,6 +119,10 @@ const Game: React.FC = () => {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [inputWord, g, handleSubmit]);
 
+  useEffect(() => {
+    if (g.gs.score.lost) g.resetGameState();
+  }, [g.gs.score.lost, g])
+
   return (
     <div className="main" style={{ opacity: g.loading ? 0 : 1 }}>
       
@@ -119,7 +136,7 @@ const Game: React.FC = () => {
             womble
           </div>
           <div id="header_under">
-            by miniaturity
+            by miniaturity // ui inspired by <a href="https://vaie.art/" target="_blank" rel="noreferrer">vaie</a>
           </div>
         </header>
         
@@ -268,12 +285,54 @@ const Stats: React.FC<{ g: GameStateType }> = ({ g }) => {
     },
   });
 
+  const { highScore } = useSpring({
+    highScore: g.highScore.hs,
+    config: {
+      duration: 400,
+      easing: easings.easeOutCubic
+    }
+  })
+
+  const [flash, setFlash] = useState(false);
+
+  useEffect(() => {
+      setFlash(true);
+      const timer = setTimeout(() => setFlash(false), 500);
+      return () => clearTimeout(timer);
+  }, [g.gs.score.lives]);
+
+  const { color } = useSpring({
+    color: flash ? '#ff0000' : 'var(--stext)',
+    immediate: flash,
+    config: {
+      duration: 100,
+    },
+  });
+
   return (
     <div id="stats">
       <div className="s__container" id="score_container">
-        <span className="sc__label">points</span>
-        <animated.span id="score">
+        <span className="sc__label" id="points">points</span>
+        <animated.span className="counter" id="score">
           {score.to(n => `${Math.floor(n)}`)}
+        </animated.span>
+      </div>
+      <div className="s__container" id="lives_container">
+        <animated.span className="sc__label" style={{ color }}>lives</animated.span>
+        <animated.span className={`counter ${flash ? `shake` : ``}`} style={{ color }}>
+          {g.gs.score.lives}
+        </animated.span>
+      </div>
+      <div className="s__container" id="guess_container">
+        <span className="sc__label">guesses</span>
+        <animated.span className="counter">
+          {g.gs.info.guesses}
+        </animated.span>
+      </div>
+      <div className="s__container" id="highscore_container">
+        <span className="sc__label">high score</span>
+        <animated.span className="counter">
+          {highScore.to(n => `${Math.floor(n)}`)}
         </animated.span>
       </div>
     </div>
@@ -284,7 +343,7 @@ const StatsR: React.FC<{ g: GameStateType }> = ({ g }) => {
 
   return (
     <div id="statsr">
-      <div className="sr__container" style={{ height: "60%" }}>
+      <div className="sr__container" id="bar_container" style={{ height: "60%" }}>
         <MultBar g={g}/>
         <div id="mult_count" style={{ color: g.gs.score.mult.color }}>
           <div id="mult">
@@ -293,24 +352,43 @@ const StatsR: React.FC<{ g: GameStateType }> = ({ g }) => {
           <div id="mult_under">
             mult
           </div>
+          <div className="space"></div>
+          <div id="combo_count" style={{ color: g.gs.score.mult.color }}>
+            <div id="combo_above">
+              combo
+            </div>
+            <div id="combo">
+              x{g.gs.score.mult.combo}
+            </div>
+          </div>
         </div>
+        <div></div>
       </div>
     </div>
   )
 }
 
 const MultBar: React.FC<{ g: GameStateType }> = ({ g }) => {
+  const fraction = Math.max(0, Math.min(1, g.gs.timer.time / g.gs.timer.maxTime));
+  const [prevFraction, setPrevFraction] = useState(fraction);
 
-  const fraction = Math.max(0, Math.min(1, g.gs.timer.time / g.gs.timer.maxTime)) * 100;
+  const { height } = useSpring({
+    from: { height: prevFraction * 100 },
+    to: { height: fraction * 100 },
+    config: {
+      duration: fraction > prevFraction ? 0 : 1000
+    },
+    onRest: () => setPrevFraction(fraction)
+  });
+
 
   return (
-    <div id="combo_bar" style={{ 
+    <animated.div className={`combo_bar`} style={{
       background: `${g.gs.score.mult.color}`,
-      height: `${fraction}%`
-      
+      height: height.to(h => `${h}%`),
+      transformOrigin: `top`
       }}>
-    
-    </div>
+    </animated.div>
   )
 }
 

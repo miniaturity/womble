@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import useLocalStorage from "./useLocalStorage";
 
 export type LetterState = "green" | "yellow" | "gray" | "na" 
 export type Letter = { c: string, state: LetterState }
@@ -12,10 +13,8 @@ interface GameState {
   score: {
     mult: Mult;
     points: number;
-    streak: number;
     lives: number;
-
-    
+    lost: boolean;
   };
   timer: {
     maxTime: number;
@@ -45,8 +44,8 @@ const defaultState: GameState = {
       color: "#787c7f"
     },
     points: 0,
-    streak: 0,
     lives: 3,
+    lost: false,
   },
   timer: {
     maxTime: 20,
@@ -108,37 +107,51 @@ type Mult = { combo: number, mult: number, color: string };
 type Multipliers = Mult[];
 const multipliers: Multipliers = [
   {
-    combo: 10,
-    mult: 1.25,
-    color: "#fff"
+    combo: 0,
+    mult: 1,
+    color: "#787c7f"
   },
   {
-    combo: 20,
+    combo: 5,
+    mult: 1.25,
+    color: "#ebab34"
+  },
+  {
+    combo: 10,
     mult: 1.5,
-    color: "#fff"
+    color: "#eb8934"
+  },
+  {
+    combo: 25,
+    mult: 2,
+    color: "#eb4934"
   },
   {
     combo: 50,
-    mult: 2,
-    color: "#fff"
+    mult: 2.25,
+    color: "#eb3434"
   },
   {
     combo: 100,
-    mult: 2.25,
-    color: "#fff"
-  },
-  {
-    combo: 150,
     mult: 3,
-    color: "#fff"
+    color: "#34d0eb"
   }
 ]
 
+interface HighScore {
+  hs: number
+}
+
 export function useGameState() {
   const [gs, setGs] = useState<GameState>(defaultState);
+  const [highScore, setHighScore] = useLocalStorage<HighScore>('hs', { hs: 0 });
   const [words, setWords] = useState<string[]>();
   const [xords, setXords] = useState<string[]>();
   const [loading, setLoading] = useState<boolean>(true);
+
+  const handleSetHighscore = useCallback((n: number) => {
+    setHighScore({ hs: n });
+  }, [setHighScore]);
 
   const resetGameState = useCallback(() => {
     setGs(defaultState);
@@ -167,6 +180,16 @@ export function useGameState() {
       words: { ...prev.words, word: w } 
     }));
   }, [words]);
+
+  const setLost = useCallback((b?: boolean) => {
+    setGs(prev => ({
+      ...prev,
+      score: {
+        ...prev.score,
+        lost: b ? b : !prev.score.lost
+      }
+    }));
+  }, []);
 
   // ==
 
@@ -265,14 +288,8 @@ export function useGameState() {
   }, []);
 
   const resetCombo = useCallback(() => {
-    setGs(prev => ({ 
-      ...prev, 
-      score: { 
-        ...prev.score, 
-        mult: { combo: 0, mult: 1, color: "#000" } 
-      }
-    }));
-  }, []);
+    setCombo(0);
+  }, [setCombo]);
 
   // ==
 
@@ -296,22 +313,14 @@ export function useGameState() {
   }, []);
 
   const addPoints = useCallback((n: number) => {
+    if (gs.score.points + n > highScore.hs) {
+      handleSetHighscore(gs.score.points + (n * gs.score.mult.mult));
+    }
     setGs(prev => ({
       ...prev,
-      score: { ...prev.score, points: prev.score.points + n }
+      score: { ...prev.score, points: prev.score.points + (n * prev.score.mult.mult) }
     }));
-  }, []);
-
-  
-
-  // ==
-
-  const setStreak = useCallback((n: number) => {
-    setGs(prev => ({ 
-      ...prev, 
-      score: { ...prev.score, streak: n }
-    }));
-  }, []);
+  }, [gs.score.points, highScore, handleSetHighscore, gs.score.mult.mult]);
 
   // ==
 
@@ -325,17 +334,18 @@ export function useGameState() {
   const willDie = useMemo(() => gs.score.lives === 1, [gs.score.lives]);
 
   const decrementLives = useCallback(() => {
-    if (willDie) resetGameState();
+    if (willDie) setLost(true);
     setGs(prev => ({ 
       ...prev, 
       score: { ...prev.score, lives: prev.score.lives - 1 }
     }));
-  }, [willDie, resetGameState]);
+  }, [willDie, setLost]);
 
   const applyTimePenalty = useCallback(() => {
+    if (gs.timer.time === gs.timer.maxTime) return;
     decrementLives();
     setCombo(0);
-  }, [setCombo, decrementLives]);
+  }, [setCombo, decrementLives, gs.timer.time, gs.timer.maxTime]);
 
   // ==
 
@@ -480,18 +490,29 @@ export function useGameState() {
   }, []);
 
   const decrementTime = useCallback((n?: number) => {
-    if (gs.timer.time === 0) {
-      applyTimePenalty();
-      resetTime();
-    }
-    setGs(prev => ({
-      ...prev,
-      timer: {
-        ...prev.timer,
-        time: prev.timer.time - (n || 1)
+    setGs(prev => {
+      const newTime = prev.timer.time - (n || 1);
+      
+      if (newTime <= 0) {
+        applyTimePenalty();
+        return {
+          ...prev,
+          timer: {
+            ...prev.timer,
+            time: prev.timer.maxTime
+          }
+        };
       }
-    }));
-  }, [gs.timer.time, applyTimePenalty, resetTime]);
+      
+      return {
+        ...prev,
+        timer: {
+          ...prev.timer,
+          time: newTime
+        }
+      };
+    });
+  }, [applyTimePenalty]);
 
 
   useEffect(() => {
@@ -547,8 +568,9 @@ export function useGameState() {
 
     decrementTime,
     resetTime,
-    
-    
+
+    highScore,
+
     words: {
       words,
       xords
@@ -557,7 +579,6 @@ export function useGameState() {
     setters: {
       setCombo,
       setPoints,
-      setStreak,
       setLives,
       setSolved,
       setSquareCount,
