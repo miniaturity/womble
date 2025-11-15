@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-export type LetterState = "green" | "yellow" | "gray" 
+export type LetterState = "green" | "yellow" | "gray" | "na" 
 export type Letter = { c: string, state: LetterState }
 export type Word = Letter[];
 
@@ -8,13 +8,21 @@ interface GameState {
   words: {
     word: string | null;
     history: Word[];
-  }
+  };
   score: {
     mult: Mult;
     points: number;
     streak: number;
     lives: number;
-  }
+
+    
+  };
+  timer: {
+    maxTime: number;
+    time: number;
+    penalty: number;
+    running: boolean;
+  };
   info: {
     solved: boolean;
     guesses: number;
@@ -22,7 +30,7 @@ interface GameState {
     yellows: number;
     grays: number;
     keys: Key[][];
-  }
+  };
 }
 
 const defaultState: GameState = {
@@ -34,11 +42,17 @@ const defaultState: GameState = {
     mult: {
       combo: 0,
       mult: 1,
-      color: "#000"
+      color: "#787c7f"
     },
     points: 0,
     streak: 0,
-    lives: 0,
+    lives: 3,
+  },
+  timer: {
+    maxTime: 20,
+    time: 20,
+    penalty: 4,
+    running: false
   },
   info: {
     solved: false,
@@ -48,38 +62,38 @@ const defaultState: GameState = {
     grays: 0,
     keys: [
           [
-        { c: "q", col: "gray" },
-        { c: "w", col: "gray" },
-        { c: "e", col: "gray" },
-        { c: "r", col: "gray" },
-        { c: "t", col: "gray" },
-        { c: "y", col: "gray" },
-        { c: "u", col: "gray" },
-        { c: "i", col: "gray" },
-        { c: "o", col: "gray" },
-        { c: "p", col: "gray" }
+        { c: "q", col: "na" },
+        { c: "w", col: "na" },
+        { c: "e", col: "na" },
+        { c: "r", col: "na" },
+        { c: "t", col: "na" },
+        { c: "y", col: "na" },
+        { c: "u", col: "na" },
+        { c: "i", col: "na" },
+        { c: "o", col: "na" },
+        { c: "p", col: "na" }
       ],
       [
-        { c: "a", col: "gray" },
-        { c: "s", col: "gray" },
-        { c: "d", col: "gray" },
-        { c: "f", col: "gray" },
-        { c: "g", col: "gray" },
-        { c: "h", col: "gray" },
-        { c: "j", col: "gray" },
-        { c: "k", col: "gray" },
-        { c: "l", col: "gray" }
+        { c: "a", col: "na" },
+        { c: "s", col: "na" },
+        { c: "d", col: "na" },
+        { c: "f", col: "na" },
+        { c: "g", col: "na" },
+        { c: "h", col: "na" },
+        { c: "j", col: "na" },
+        { c: "k", col: "na" },
+        { c: "l", col: "na" }
       ],
       [
-        { c: "del", col: "gray" },
-        { c: "z", col: "gray" },
-        { c: "x", col: "gray" },
-        { c: "c", col: "gray" },
-        { c: "v", col: "gray" },
-        { c: "b", col: "gray" },
-        { c: "n", col: "gray" },
-        { c: "m", col: "gray" },
-        { c: "go", col: "gray" }
+        { c: "del", col: "na" },
+        { c: "z", col: "na" },
+        { c: "x", col: "na" },
+        { c: "c", col: "na" },
+        { c: "v", col: "na" },
+        { c: "b", col: "na" },
+        { c: "n", col: "na" },
+        { c: "m", col: "na" },
+        { c: "go", col: "na" }
       ]
     ]
   }
@@ -126,6 +140,9 @@ export function useGameState() {
   const [xords, setXords] = useState<string[]>();
   const [loading, setLoading] = useState<boolean>(true);
 
+  const resetGameState = useCallback(() => {
+    setGs(defaultState);
+  }, []);
 
   const getWords = useCallback(async (path: string): Promise<string[] | undefined> => {
     try {
@@ -278,6 +295,15 @@ export function useGameState() {
     }));
   }, []);
 
+  const addPoints = useCallback((n: number) => {
+    setGs(prev => ({
+      ...prev,
+      score: { ...prev.score, points: prev.score.points + n }
+    }));
+  }, []);
+
+  
+
   // ==
 
   const setStreak = useCallback((n: number) => {
@@ -296,14 +322,20 @@ export function useGameState() {
     }));
   }, []);
 
+  const willDie = useMemo(() => gs.score.lives === 1, [gs.score.lives]);
+
   const decrementLives = useCallback(() => {
+    if (willDie) resetGameState();
     setGs(prev => ({ 
       ...prev, 
       score: { ...prev.score, lives: prev.score.lives - 1 }
     }));
-  }, []);
+  }, [willDie, resetGameState]);
 
-  const willDie = useMemo(() => gs.score.lives === 1, [gs.score.lives]);
+  const applyTimePenalty = useCallback(() => {
+    decrementLives();
+    setCombo(0);
+  }, [setCombo, decrementLives]);
 
   // ==
 
@@ -350,6 +382,16 @@ export function useGameState() {
 
   // ==
 
+  const setTimerRunning = useCallback((b?: boolean) => {
+    setGs(prev => ({
+      ...prev,
+      timer: {
+        ...prev.timer,
+        running: b ? b : !prev.timer.running
+      }
+    }))
+  }, []);
+
   const setGuesses = useCallback((n: number) => {
     setGs(prev => ({ 
       ...prev, 
@@ -358,6 +400,7 @@ export function useGameState() {
   }, []);
 
   const guess = useCallback((g: Word) => {
+    if (!gs.timer.running) setTimerRunning(true);
     setGs(prev => {
       const newGuesses = prev.info.guesses + 1;
       const word = g.map(w => w.c).join("");
@@ -376,7 +419,7 @@ export function useGameState() {
         }
       };
     });
-  }, []);
+  }, [gs.timer.running, setTimerRunning]);
 
   // ==
 
@@ -393,6 +436,73 @@ export function useGameState() {
       }
     }))
   }, []);
+
+  // ==
+
+  const setTime = useCallback((n: number) => {
+    setGs(prev => ({
+      ...prev,
+      timer: {
+        ...prev.timer,
+        time: n
+      }
+    }));
+  }, []);
+
+  const setMaxTime = useCallback((n: number) => {
+    setGs(prev => ({
+      ...prev,
+      timer: {
+        ...prev.timer,
+        maxTime: n
+      }
+    }));
+  }, []);
+
+  const setTimePenalty = useCallback((n: number) => {
+    setGs(prev => ({
+      ...prev,
+      timer: {
+        ...prev.timer,
+        penalty: n
+      }
+    }));
+  }, []);
+
+  const resetTime = useCallback(() => {
+    setGs(prev => ({
+      ...prev,
+      timer: {
+        ...prev.timer,
+        time: prev.timer.maxTime
+      }
+    }));
+  }, []);
+
+  const decrementTime = useCallback((n?: number) => {
+    if (gs.timer.time === 0) {
+      applyTimePenalty();
+      resetTime();
+    }
+    setGs(prev => ({
+      ...prev,
+      timer: {
+        ...prev.timer,
+        time: prev.timer.time - (n || 1)
+      }
+    }));
+  }, [gs.timer.time, applyTimePenalty, resetTime]);
+
+
+  useEffect(() => {
+    if (!gs.timer.running) return;
+
+    const timer = setInterval(() => {
+      decrementTime();
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [decrementTime, gs.timer.running]);
 
   useEffect(() => {
     const a = async () => {
@@ -418,6 +528,8 @@ export function useGameState() {
     gs,
     loading,
 
+    resetGameState,
+
     incrementCombo,
     resetCombo,
 
@@ -430,6 +542,12 @@ export function useGameState() {
 
     appendHistory,
     clearHistory,
+
+    addPoints,
+
+    decrementTime,
+    resetTime,
+    
     
     words: {
       words,
@@ -447,7 +565,11 @@ export function useGameState() {
       setMult,
       setWord,
       setHistory,
-      setLetterCol
+      setLetterCol,
+      setTime,
+      setMaxTime,
+      setTimePenalty,
+      setTimerRunning
     },
     
   };

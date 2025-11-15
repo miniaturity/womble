@@ -1,9 +1,14 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { LetterState, useGameState, Word } from "./hooks/useGameState";
+import { animated, easings, useSpring } from '@react-spring/web';
 
 type GameStateType = ReturnType<typeof useGameState>
 
-
+const scoreValues = {
+  green: 4,
+  yellow: 2,
+  full: 40,
+}
 
 const Game: React.FC = () => {
   const g = useGameState();
@@ -49,7 +54,36 @@ const Game: React.FC = () => {
           }
         }
       }
+
+      let greenCount = 0;
+      let yellowCount = 0;
+      let grayCount = 0;
       
+      guessAsWord.forEach(letter => {
+        const currentKeyState = g.gs.info.keys.flat().find(k => k.c === letter.c.toLowerCase())?.col;
+        
+        if (letter.state === "green") greenCount++;
+        else if (letter.state === "yellow") yellowCount++;
+        else if (letter.state === "gray") grayCount++;
+
+        if (letter.state === "green") {
+          g.setters.setLetterCol(letter.c.toLowerCase(), "green");
+        } else if (letter.state === "yellow" && currentKeyState !== "green") {
+          g.setters.setLetterCol(letter.c.toLowerCase(), "yellow");
+        } else if (letter.state === "gray" && currentKeyState === "na") {
+          g.setters.setLetterCol(letter.c.toLowerCase(), "gray");
+        }
+      });
+
+      g.incrementSquareCount("green", greenCount);
+      g.incrementSquareCount("yellow", yellowCount);
+      g.incrementSquareCount("gray", grayCount);
+      
+      if (greenCount === 5) g.addPoints(scoreValues.full);
+      else g.addPoints((greenCount * scoreValues.green) + (yellowCount * scoreValues.yellow));
+
+      if (greenCount >= 2) g.incrementCombo();
+
       g.guess(guessAsWord);
       setInputWord("");
     }, [g, inputWord]);
@@ -73,11 +107,12 @@ const Game: React.FC = () => {
   }, [inputWord, g, handleSubmit]);
 
   return (
-    <div className="main" style={{ visibility: g.loading ? "hidden" : "visible" }}>
-      <aside id="l"></aside>
+    <div className="main" style={{ opacity: g.loading ? 0 : 1 }}>
+      
+      <aside id="l">
+        <Stats g={g} />
+      </aside>
 
-      
-      
       <center>
         <header>
           <div id="header_upper">
@@ -88,7 +123,10 @@ const Game: React.FC = () => {
           </div>
         </header>
         
+        <div id="overlay"></div>
+
         <div id="words">
+          
           <div id="history">
             {g.gs.words.history.map((w, index) => (
               <HistoryWord word={w} key={index} gs={g} />
@@ -135,7 +173,10 @@ const Game: React.FC = () => {
         </div>
       </center>
 
-      <aside id="r"></aside>
+      <aside id="r">
+        <StatsR g={g}/>
+      </aside>
+      
     </div>
   );
 };
@@ -164,7 +205,7 @@ const Key: React.FC<KeyProps> = ({ c, handlers, color }) => {
   }
 
   return (
-    <button className={`key k_${color}`} id={`key_${c}`} onClick={() => handleClick(c)}>
+    <button className={`key ${color !== "na" ? `k_${color}` : ``}`} id={`key_${c}`} onClick={() => handleClick(c)}>
       {c}
     </button>
   )
@@ -178,7 +219,7 @@ const InputWord: React.FC<InputWordProps> = ({ input }) => {
   return (
     <>
       {[0, 1, 2, 3, 4].map(i => (
-        <div className="i__letter" id={`i${i}`} key={i}>
+        <div className={`i__letter ${input[i] ? `` : `il__empty`}`} id={`i${i}`} key={i}>
           {input[i] || ""}
         </div>
       ))}
@@ -193,7 +234,7 @@ interface HistoryWordProps {
 
 const HistoryWord: React.FC<HistoryWordProps> = ({ word, gs }) => {
   const combo = gs.gs.score.mult.combo;
-  const baseDelay = 0.25; 
+  const baseDelay = 0.15; 
   const minDelay = 0.05;  
   const delayMultiplier = Math.max(minDelay, baseDelay - (combo * 0.002));
   
@@ -216,5 +257,61 @@ const HistoryWord: React.FC<HistoryWordProps> = ({ word, gs }) => {
     </div>
   );
 };
+
+const Stats: React.FC<{ g: GameStateType }> = ({ g }) => {
+
+  const { score } = useSpring({
+    score: g.gs.score.points,
+    config: {
+      duration: 400,
+      easing: easings.easeOutCubic,
+    },
+  });
+
+  return (
+    <div id="stats">
+      <div className="s__container" id="score_container">
+        <span className="sc__label">points</span>
+        <animated.span id="score">
+          {score.to(n => `${Math.floor(n)}`)}
+        </animated.span>
+      </div>
+    </div>
+  )
+}
+
+const StatsR: React.FC<{ g: GameStateType }> = ({ g }) => {
+
+  return (
+    <div id="statsr">
+      <div className="sr__container" style={{ height: "60%" }}>
+        <MultBar g={g}/>
+        <div id="mult_count" style={{ color: g.gs.score.mult.color }}>
+          <div id="mult">
+            {g.gs.score.mult.mult.toFixed(2)}x
+          </div>
+          <div id="mult_under">
+            mult
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const MultBar: React.FC<{ g: GameStateType }> = ({ g }) => {
+
+  const fraction = Math.max(0, Math.min(1, g.gs.timer.time / g.gs.timer.maxTime)) * 100;
+
+  return (
+    <div id="combo_bar" style={{ 
+      background: `${g.gs.score.mult.color}`,
+      height: `${fraction}%`
+      
+      }}>
+    
+    </div>
+  )
+}
 
 export default Game;
