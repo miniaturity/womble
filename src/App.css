@@ -36,22 +36,47 @@
   --uptime: 0.2s;
 }
 
-@keyframes shake {
+@keyframes from-down {
   0% {
-    translate: calc(var(--margin) * -1) 0;
-  } 25% {
-    translate: calc(var(--margin) * 2) 0;
-  } 50% {
-    translate: 0;
-  } 75% {
-    translate: calc(var(--margin) * -1) 0;
-  } 100% {
-    translate: calc(var(--margin) * 2) 0;
+    translate: 0 calc(var(--margin) * -1);
+    opacity: 0;
+  }
+  100% {
+    translate: 0 0;
+    opacity: 1;
   }
 }
 
-.shake {
-  animation: shake 0.35s ease-out;
+@keyframes shake {
+  0% {
+    translate: calc(var(--margin) * -2) 0;
+  } 25% {
+    translate: calc(var(--margin) * 2) 0;
+  } 50% {
+    translate: calc(var(--margin) * -1) 0;
+  } 75% {
+    translate: calc(var(--margin) * 1) 0;
+  } 100% {
+    translate: 0 0;
+  }
+}
+
+@keyframes fshake {
+  0% {
+    transform: translate(2px, 1px);
+  }
+  25% {
+    transform: translate(-3px, -2px);
+  }
+  50% {
+    transform: translate(1px, -1px);
+  }
+  75% {
+    transform: translate(-1px, 2px);
+  }
+  100% {
+    transform: translate(2px, 1px);
+  }
 }
 
 @keyframes float {
@@ -59,7 +84,7 @@
     translate: 0 0;
   }
   50% {
-    translate: 0 calc(var(--margin) * 2);
+    translate: 0 calc(var(--margin) * 3);
   }
   100% {
     translate: 0 0;
@@ -92,6 +117,44 @@
     border: var(--bor);
     color: #fff;
   }
+}
+
+a {
+  color: var(--green);
+  font-weight: bold;
+  transition: all 0.3s ease-in-out;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+button {
+  border: 2px solid var(--key);
+  font-family: "tommy";
+  font-size: calc(var(--fs) / 1.5);
+  padding: calc(var(--pad) * 2);
+  cursor: pointer;
+  transition: all 0.3s ease-in-out;
+  box-shadow: 4px 4px var(--keyshadow);
+  border-radius: calc(var(--keyrad) * 2);
+
+  &:hover {
+    translate: 0 calc(var(--pad) * -2);
+
+  }
+}
+
+
+.shake {
+  animation: shake 0.25s ease-out !important;
+}
+
+.fshake {
+  color: red !important;
+  animation: fshake 1s steps(3) infinite;
+}
+
+.red {
+  color: red !important;
 }
 
 .space {
@@ -187,6 +250,13 @@
   animation: float 4s infinite ease-in-out;
 }
 
+#lastpg_count {
+  font-size: var(--fs);
+}
+
+#lastpg {
+  animation: from-down 0.2s ease-out;
+}
 
 #mult_count {
   display: flex;
@@ -195,12 +265,12 @@
 }
 
 #mult {
-  font-size: 3rem;
+  font-size: calc(var(--fs) * 1.5);
 }
 
 #mult_under {
   margin-top: calc(var(--margin) * -2);
-  font-size: 1.5rem;
+  font-size: calc(var(--fs) * 0.77);
 }
 
 #combo_count {
@@ -211,11 +281,11 @@
 
 #combo_above {
   margin-bottom: calc(var(--margin) * -2);
-  font-size: 1.5rem;
+  font-size: calc(var(--fs) * 0.77);
 }
 
 #combo {
-  font-size: 4rem;
+  font-size: calc(var(--fs) * 2.5);
 }
 
 .combo_bar {
@@ -454,6 +524,21 @@ header {
     transform: translateY(-5px);
     z-index: 2;
   }
+}
+
+#buttons_container {
+  pointer-events: all;
+}
+
+.modal {
+  position: absolute;
+  top: 0;
+  left: 0;
+
+  width: 100vw;
+  height: 100vh;
+
+  
 }
 
 @font-face {

@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { LetterState, useGameState, Word } from "./hooks/useGameState";
 import { animated, easings, useSpring } from '@react-spring/web';
+import ReactDOM from "react-dom";
+import { useModal } from "./hooks/useModal";
 
 type GameStateType = ReturnType<typeof useGameState>
 
@@ -13,6 +15,8 @@ const scoreValues = {
 const Game: React.FC = () => {
   const g = useGameState();
   const [inputWord, setInputWord] = useState<string>("");
+  const [lastPg, setLastPg] = useState<number>();
+  const { isModalOpen, openModal, closeModal, toggleModal } = useModal();
 
   const handleSubmit = useCallback(() => {
       if (inputWord.length !== 5) return;
@@ -90,8 +94,15 @@ const Game: React.FC = () => {
       g.incrementSquareCount("yellow", yellowCount);
       g.incrementSquareCount("gray", grayCount);
       
-      if (greenCount === 5) g.addPoints(scoreValues.full);
-      else g.addPoints((greenCount * scoreValues.green) + (yellowCount * scoreValues.yellow));
+      if (greenCount === 5) { 
+        g.incrementLives();
+        g.addPoints(scoreValues.full); 
+        setLastPg(scoreValues.full * g.gs.score.mult.mult);
+      }
+      else { 
+        g.addPoints((greenCount * scoreValues.green) + (yellowCount * scoreValues.yellow)) 
+        setLastPg(((greenCount * scoreValues.green) + (yellowCount * scoreValues.yellow)) * g.gs.score.mult.mult)
+      };
 
       if (greenCount >= 2) g.incrementCombo();
       else g.resetCombo();
@@ -101,6 +112,11 @@ const Game: React.FC = () => {
       setInputWord("");
     }, [g, inputWord]);
 
+    useEffect(() => {
+      if (lastPg === undefined) return; 
+      const timer = setTimeout(() => setLastPg(undefined), 2000);
+      return () => clearTimeout(timer);
+    }, [lastPg])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -121,10 +137,14 @@ const Game: React.FC = () => {
 
   useEffect(() => {
     if (g.gs.score.lost) g.resetGameState();
-  }, [g.gs.score.lost, g])
+  }, [g.gs.score.lost, g]);
 
   return (
     <div className="main" style={{ opacity: g.loading ? 0 : 1 }}>
+      <Modal onClose={closeModal} isOpen={isModalOpen}>
+        <div></div>
+      </Modal>
+
       
       <aside id="l">
         <Stats g={g} />
@@ -136,7 +156,8 @@ const Game: React.FC = () => {
             womble
           </div>
           <div id="header_under">
-            by miniaturity // ui inspired by <a href="https://vaie.art/" target="_blank" rel="noreferrer">vaie</a>
+            by <a id="me" href="https://miniaturity.com" target="_blank" rel="noreferrer">miniaturity</a> 
+            &nbsp;// ui inspired by <a id="vaie" href="https://vaie.art/" target="_blank" rel="noreferrer">vaie</a>
           </div>
         </header>
         
@@ -191,7 +212,7 @@ const Game: React.FC = () => {
       </center>
 
       <aside id="r">
-        <StatsR g={g}/>
+        <StatsR g={g} l={lastPg} toggleModal={toggleModal}/>
       </aside>
       
     </div>
@@ -291,15 +312,19 @@ const Stats: React.FC<{ g: GameStateType }> = ({ g }) => {
       duration: 400,
       easing: easings.easeOutCubic
     }
-  })
+  });
 
   const [flash, setFlash] = useState(false);
+  const [prevLives, setPrevLives] = useState(g.gs.score.lives);
 
   useEffect(() => {
+    if (g.gs.score.lives < prevLives) {
       setFlash(true);
-      const timer = setTimeout(() => setFlash(false), 500);
-      return () => clearTimeout(timer);
-  }, [g.gs.score.lives]);
+    }
+    const timer = setTimeout(() => setFlash(false), 500);
+    setPrevLives(g.gs.score.lives);
+    return () => clearTimeout(timer);
+  }, [g.gs.score.lives, prevLives]);
 
   const { color } = useSpring({
     color: flash ? '#ff0000' : 'var(--stext)',
@@ -318,8 +343,8 @@ const Stats: React.FC<{ g: GameStateType }> = ({ g }) => {
         </animated.span>
       </div>
       <div className="s__container" id="lives_container">
-        <animated.span className="sc__label" style={{ color }}>lives</animated.span>
-        <animated.span className={`counter ${flash ? `shake` : ``}`} style={{ color }}>
+        <animated.span className={`sc__label ${g.gs.score.lives === 1 ? "red" : ""}`} style={{ color }}>lives</animated.span>
+        <animated.span className={`counter ${flash ? `shake` : ``} ${g.gs.score.lives === 1 ? `fshake` : ``}`} style={{ color }}>
           {g.gs.score.lives}
         </animated.span>
       </div>
@@ -339,7 +364,7 @@ const Stats: React.FC<{ g: GameStateType }> = ({ g }) => {
   )
 }
 
-const StatsR: React.FC<{ g: GameStateType }> = ({ g }) => {
+const StatsR: React.FC<{ g: GameStateType, l?: number, toggleModal: () => void }> = ({ g, l, toggleModal }) => {
 
   return (
     <div id="statsr">
@@ -353,20 +378,34 @@ const StatsR: React.FC<{ g: GameStateType }> = ({ g }) => {
             mult
           </div>
           <div className="space"></div>
+          <div id="lastpg_count">
+
+            {l !== undefined && <span id="lastpg" key={l}>+{l}</span>}
+
+          </div>
           <div id="combo_count" style={{ color: g.gs.score.mult.color }}>
+
             <div id="combo_above">
               combo
             </div>
             <div id="combo">
               x{g.gs.score.mult.combo}
             </div>
+
           </div>
         </div>
-        <div></div>
+      </div>
+      <div className="space"></div>
+      <div id="buttons_container">
+        <button id="tutorial" onClick={toggleModal}>
+          how to play
+        </button>
       </div>
     </div>
   )
 }
+
+
 
 const MultBar: React.FC<{ g: GameStateType }> = ({ g }) => {
   const fraction = Math.max(0, Math.min(1, g.gs.timer.time / g.gs.timer.maxTime));
@@ -389,6 +428,25 @@ const MultBar: React.FC<{ g: GameStateType }> = ({ g }) => {
       transformOrigin: `top`
       }}>
     </animated.div>
+  )
+}
+
+interface ModalProps {
+  onClose: () => void;
+  isOpen: boolean;
+  children: React.ReactNode;
+}
+
+const Modal = ({ children, onClose, isOpen }: ModalProps) => {
+  if (!isOpen) return null;
+
+  return ReactDOM.createPortal(
+    <div className="modal" onClick={onClose}>
+      <div className="m__content" onClick={(e) => e.stopPropagation()}>
+        {children}
+      </div>  
+    </div>,
+    document.body
   )
 }
 

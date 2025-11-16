@@ -341,6 +341,13 @@ export function useGameState() {
     }));
   }, [willDie, setLost]);
 
+  const incrementLives = useCallback(() => {
+    setGs(prev => ({
+      ...prev,
+      score: { ...prev.score, lives: prev.score.lives + 1}
+    }));
+  }, [])
+
   const applyTimePenalty = useCallback(() => {
     if (gs.timer.time === gs.timer.maxTime) return;
     decrementLives();
@@ -555,6 +562,7 @@ export function useGameState() {
     resetCombo,
 
     decrementLives,
+    incrementLives,
     willDie,
 
     incrementSquareCount,
