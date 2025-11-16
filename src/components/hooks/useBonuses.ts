@@ -7,27 +7,46 @@ interface BonusesProps {
 
 export function useBonuses({ history }: BonusesProps) {
 
+  const findSquare = useCallback(
+    (size: number, targetState: string) => {
+      const results: { cells: { row: number; col: number }[] }[] = [];
 
-  const findSquare = useCallback((size: number, state: string) => {
-    var indices: number[] = [];
-    // Iterate through each history entry, starting at the end.
-    for (let i = history.length - 1; i > history.length - size; i--) {
+      if (history.length < size) return results;
 
-      // Iterate through each letter.
-      for (let j = 0; i < history[i].length; i++) {
+      for (let row = 0; row <= history.length - size; row++) {
+        const wordLength = history[row].length;
+        if (wordLength < size) continue;
 
-        if (history[i][j].state === state) {
-          indices.push(j);
+        for (let col = 0; col <= wordLength - size; col++) {
+          let allMatch = true;
+          const cells: { row: number; col: number }[] = [];
+
+          // check the square block
+          for (let dy = 0; dy < size && allMatch; dy++) {
+            for (let dx = 0; dx < size; dx++) {
+              if (history[row + dy][col + dx].state !== targetState) {
+                allMatch = false;
+                break;
+              }
+              cells.push({ row: row + dy, col: col + dx });
+            }
+          }
+
+          if (allMatch) {
+            results.push({ cells });
+          }
         }
-
       }
-    }
 
-    // Check for repeated indices?
-    
+      return results; // empty [] if no squares found
+    },
+    [history]
+  );
 
+  return {
+    findSquare
+  }
 
-  }, []);
 
 
 }
