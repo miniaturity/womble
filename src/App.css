@@ -343,7 +343,7 @@ center {
   pointer-events: all;
 }
 
-header {
+header:not(.n) {
   position: absolute;
   top: 0;
   display: flex;
@@ -351,6 +351,35 @@ header {
 
   margin-top: calc(var(--margin) * 4);
   z-index: 3;
+}
+
+.divider {
+  margin: calc(var(--margin) * 2);
+  height: 1px;
+  width: 100%;
+  background-color: #000;
+}
+
+.n {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  height: fit-content;
+  width: 100%;
+  
+  & span {
+    font-size: var(--fs);
+  }
+
+  & div {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    height: 32px;
+    width: 32px;
+    
+  }
 }
 
 #header_upper {
@@ -535,10 +564,68 @@ header {
   top: 0;
   left: 0;
 
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
   width: 100vw;
   height: 100vh;
 
-  
+  background: rgba(0, 0, 0, 0.2);
+  z-index: 8;
+}
+
+.m__content {
+  animation: 0.15s up ease-in;
+}
+
+
+#tut_modal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  font-family: "tommy";
+
+  background-color: #fff;
+  width: 500px;
+  height: 500px;
+
+  padding: calc(var(--margin) * 4);
+  z-index: 9;
+
+  border-radius: calc(var(--keyrad) * 2);
+  overflow: auto;
+  overflow-x: hidden;
+}
+
+p {
+  margin: 4px 0 0 0;
+  font-family: "tommyl";
+}
+
+h1, h2, h3 {
+  font-family: "tommyl";
+  margin: 0;
+  font-weight: bold;
+  width: 100%;
+}
+
+.g {
+  color: var(--green);
+}
+
+.y {
+  color: var(--yellow);
+}
+
+.gr {
+  color: var(--gray);
+}
+
+.b {
+  font-weight: bold;
+  text-shadow: -1px -1px;
 }
 
 @font-face {
@@ -555,6 +642,11 @@ header {
 @font-face {
   font-family: "tommyb";
   src: url(../public/assets/fonts/tommy_bold.otf);
+}
+
+@font-face {
+  font-family: "tommyl";
+  src: url(../public/assets/fonts/tommy_light.otf);
 }
 
 

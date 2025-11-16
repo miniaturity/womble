@@ -1,8 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { LetterState, useGameState, Word } from "./hooks/useGameState";
 import { animated, easings, useSpring } from '@react-spring/web';
-import ReactDOM from "react-dom";
-import { useModal } from "./hooks/useModal";
+import { ModalType } from "../App";
 
 type GameStateType = ReturnType<typeof useGameState>
 
@@ -12,11 +11,10 @@ const scoreValues = {
   full: 40,
 }
 
-const Game: React.FC = () => {
+const Game: React.FC<{ m: ModalType }> = ({ m }) => {
   const g = useGameState();
   const [inputWord, setInputWord] = useState<string>("");
   const [lastPg, setLastPg] = useState<number>();
-  const { isModalOpen, openModal, closeModal, toggleModal } = useModal();
 
   const handleSubmit = useCallback(() => {
       if (inputWord.length !== 5) return;
@@ -141,9 +139,6 @@ const Game: React.FC = () => {
 
   return (
     <div className="main" style={{ opacity: g.loading ? 0 : 1 }}>
-      <Modal onClose={closeModal} isOpen={isModalOpen}>
-        <div></div>
-      </Modal>
 
       
       <aside id="l">
@@ -212,7 +207,7 @@ const Game: React.FC = () => {
       </center>
 
       <aside id="r">
-        <StatsR g={g} l={lastPg} toggleModal={toggleModal}/>
+        <StatsR g={g} l={lastPg} toggleModal={m.toggleModal}/>
       </aside>
       
     </div>
@@ -380,7 +375,7 @@ const StatsR: React.FC<{ g: GameStateType, l?: number, toggleModal: () => void }
           <div className="space"></div>
           <div id="lastpg_count">
 
-            {l !== undefined && <span id="lastpg" key={l}>+{l}</span>}
+            {(l !== undefined && l !== 0) && <span id="lastpg" key={l}>+{l}</span>}
 
           </div>
           <div id="combo_count" style={{ color: g.gs.score.mult.color }}>
@@ -428,25 +423,6 @@ const MultBar: React.FC<{ g: GameStateType }> = ({ g }) => {
       transformOrigin: `top`
       }}>
     </animated.div>
-  )
-}
-
-interface ModalProps {
-  onClose: () => void;
-  isOpen: boolean;
-  children: React.ReactNode;
-}
-
-const Modal = ({ children, onClose, isOpen }: ModalProps) => {
-  if (!isOpen) return null;
-
-  return ReactDOM.createPortal(
-    <div className="modal" onClick={onClose}>
-      <div className="m__content" onClick={(e) => e.stopPropagation()}>
-        {children}
-      </div>  
-    </div>,
-    document.body
   )
 }
 
