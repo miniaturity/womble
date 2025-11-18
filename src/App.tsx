@@ -37,14 +37,6 @@ function App() {
             <span className="g b">solving</span>&nbsp;the word grants you <span className="b">40</span>
             &nbsp;points and an extra life.
           </p>
-
-          <header className="n">
-            <span>bonuses</span>
-          </header>
-          <div className="divider"></div>
-          <p>
-
-          </p>
         </div>
       </Modal>
       <Squares 

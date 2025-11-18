@@ -600,6 +600,5 @@ export function useGameState() {
       setTimePenalty,
       setTimerRunning
     },
-    
   };
 }

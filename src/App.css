@@ -11,6 +11,7 @@
   --keyrad: 4px;
 
   /* Colors */
+
   --green: #6ca965;
   --yellow: #c8b653;
   --gray: #787c7f;
@@ -116,6 +117,19 @@
     background: var(--col);
     border: var(--bor);
     color: #fff;
+  }
+}
+
+@keyframes bounce-and-explode {
+  0% {
+    translate: 0 0;
+  } 50% {
+    translate: 0 -20px;
+  } 100% {
+    translate: 0 0;
+    background-color: var(--col);
+    border: var(--bor);
+    color: #000;
   }
 }
 
@@ -371,6 +385,10 @@ header:not(.n) {
     font-size: var(--fs);
   }
 
+  & .x {
+    margin-top: calc(var(--margin) * 4);
+  }
+
   & div {
     display: flex;
     align-items: center;
@@ -484,6 +502,10 @@ header:not(.n) {
   flex-wrap: nowrap;
 
   justify-content: center;
+}
+
+.double {
+  width: calc(var(--keys) * 1.2) !important;
 }
 
 .key {

@@ -92,6 +92,7 @@ const Game: React.FC<{ m: ModalType }> = ({ m }) => {
       g.incrementSquareCount("yellow", yellowCount);
       g.incrementSquareCount("gray", grayCount);
       
+      let basePoints = 0;
       if (greenCount === 5) { 
         g.incrementLives();
         g.addPoints(scoreValues.full); 
@@ -107,6 +108,10 @@ const Game: React.FC<{ m: ModalType }> = ({ m }) => {
 
       g.guess(guessAsWord);
       g.resetTime();
+
+      
+      const totalPoints = (basePoints) * g.gs.score.mult.mult;
+      setLastPg(totalPoints);
       setInputWord("");
     }, [g, inputWord]);
 
@@ -162,7 +167,7 @@ const Game: React.FC<{ m: ModalType }> = ({ m }) => {
           
           <div id="history">
             {g.gs.words.history.map((w, index) => (
-              <HistoryWord word={w} key={index} gs={g} />
+              <HistoryWord word={w} key={index} gs={g} rowIndex={index} />
             ))}
           </div>
           <div id="input">
@@ -238,7 +243,7 @@ const Key: React.FC<KeyProps> = ({ c, handlers, color }) => {
   }
 
   return (
-    <button className={`key ${color !== "na" ? `k_${color}` : ``}`} id={`key_${c}`} onClick={() => handleClick(c)}>
+    <button className={`key ${color !== "na" ? `k_${color}` : ``}${c === "del" || c === "go" ? `double` : ``}`} id={`key_${c}`} onClick={() => handleClick(c)}>
       {c}
     </button>
   )
@@ -262,10 +267,11 @@ const InputWord: React.FC<InputWordProps> = ({ input }) => {
 
 interface HistoryWordProps {
   word: Word;
-  gs: GameStateType
+  gs: GameStateType;
+  rowIndex: number;
 }
 
-const HistoryWord: React.FC<HistoryWordProps> = ({ word, gs }) => {
+const HistoryWord: React.FC<HistoryWordProps> = ({ word, gs, rowIndex }) => {
   const combo = gs.gs.score.mult.combo;
   const baseDelay = 0.15; 
   const minDelay = 0.05;  
@@ -274,15 +280,21 @@ const HistoryWord: React.FC<HistoryWordProps> = ({ word, gs }) => {
   return (
     <div className="h__word">
       {word.map((w, index) => { 
-      var col = w.state === "green" ? "var(--green)" :
+      const col = w.state === "green" ? "var(--green)" :
         w.state === "yellow" ? "var(--yellow)" : "var(--gray)";
-      var bor = w.state === "green" ? "var(--greenborder)" :
+      const bor = w.state === "green" ? "var(--greenborder)" :
         w.state === "yellow" ? "var(--yellowborder)" : "var(--grayborder)";
+      
+
       return (
         <div
           key={index}
           className={`hw__letter`}
-          style={{ "--i": `${index * delayMultiplier}s`, "--col": col, "--bor": bor } as React.CSSProperties}
+          style={{ 
+            "--i": `${index * delayMultiplier}s`, 
+            "--col": col, 
+            "--bor": bor
+          } as React.CSSProperties}
         >
           {w.c}
         </div>
