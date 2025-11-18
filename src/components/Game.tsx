@@ -271,7 +271,7 @@ interface HistoryWordProps {
   rowIndex: number;
 }
 
-const HistoryWord: React.FC<HistoryWordProps> = ({ word, gs, rowIndex }) => {
+const HistoryWord: React.FC<HistoryWordProps> = ({ word, gs }) => {
   const combo = gs.gs.score.mult.combo;
   const baseDelay = 0.15; 
   const minDelay = 0.05;  

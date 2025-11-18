@@ -20,6 +20,7 @@ interface GameState {
     maxTime: number;
     time: number;
     penalty: number;
+    shouldApplyPenalty: boolean;
     running: boolean;
   };
   info: {
@@ -51,7 +52,8 @@ const defaultState: GameState = {
     maxTime: 20,
     time: 20,
     penalty: 4,
-    running: false
+    running: false,
+    shouldApplyPenalty: false
   },
   info: {
     solved: false,
@@ -349,10 +351,9 @@ export function useGameState() {
   }, [])
 
   const applyTimePenalty = useCallback(() => {
-    if (gs.timer.time === gs.timer.maxTime) return;
     decrementLives();
     setCombo(0);
-  }, [setCombo, decrementLives, gs.timer.time, gs.timer.maxTime]);
+  }, [setCombo, decrementLives]);
 
   // ==
 
@@ -501,12 +502,12 @@ export function useGameState() {
       const newTime = prev.timer.time - (n || 1);
       
       if (newTime <= 0) {
-        applyTimePenalty();
         return {
           ...prev,
           timer: {
             ...prev.timer,
-            time: prev.timer.maxTime
+            time: prev.timer.maxTime,
+            shouldApplyPenalty: true
           }
         };
       }
@@ -519,7 +520,7 @@ export function useGameState() {
         }
       };
     });
-  }, [applyTimePenalty]);
+  }, []);
 
 
   useEffect(() => {
@@ -545,6 +546,19 @@ export function useGameState() {
     
     a();
   }, [getWords]);
+
+  useEffect(() => {
+    if (gs.timer.shouldApplyPenalty) {
+      applyTimePenalty();
+      setGs(prev => ({
+        ...prev,
+        timer: {
+          ...prev.timer,
+          shouldApplyPenalty: false
+        }
+      }));
+    }
+  }, [gs.timer.shouldApplyPenalty, applyTimePenalty]);
 
   useEffect(() => {
     if (words && words.length > 0 && !gs.words.word) {
