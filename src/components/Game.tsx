@@ -367,6 +367,12 @@ const Stats: React.FC<{ g: GameStateType }> = ({ g }) => {
           {highScore.to(n => `${Math.floor(n)}`)}
         </animated.span>
       </div>
+      <div className="space"></div>
+      <div id="lbuttons_container">
+        <button id="mode" onClick={() => g.toggleMode()}>
+          {g.gs.mode === "any" ? "play daily" : "play random"}
+        </button>
+      </div>
     </div>
   )
 }
@@ -403,7 +409,7 @@ const StatsR: React.FC<{ g: GameStateType, l?: number, toggleModal: () => void }
         </div>
       </div>
       <div className="space"></div>
-      <div id="buttons_container">
+      <div id="rbuttons_container">
         <button id="tutorial" onClick={toggleModal}>
           how to play
         </button>
