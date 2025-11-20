@@ -12,7 +12,7 @@ module.exports = async function handler(req, res) {
 
     const sheets = google.sheets({ version: "v4", auth });
     const spreadsheetId = process.env.SPREADSHEET_ID;
-    const range = "Sheet1!A1:B1015";
+    const range = "WombleAPI!A1:B1015";
 
     const result = await sheets.spreadsheets.values.get({
       spreadsheetId,
