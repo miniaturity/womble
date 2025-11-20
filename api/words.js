@@ -1,7 +1,6 @@
 const { google } = require("googleapis");
-import type { VercelRequest, VercelResponse } from "@vercel/node";
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+module.exports = async function handler(req, res) {
   try {
     const auth = new google.auth.GoogleAuth({
       credentials: {
@@ -12,8 +11,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
 
     const sheets = google.sheets({ version: "v4", auth });
-    const spreadsheetId = process.env.SPREADSHEET_ID!;
-    const range = "WombleAPI!A1:B1015";
+    const spreadsheetId = process.env.SPREADSHEET_ID;
+    const range = "Sheet1!A1:B1015";
 
     const result = await sheets.spreadsheets.values.get({
       spreadsheetId,
@@ -21,8 +20,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
 
     res.status(200).json(result.data.values ?? []);
-  } catch (err: any) {
+  } catch (err) {
     console.error('API Error:', err);
     res.status(500).json({ error: "Could not load daily words.", details: err.message });
   }
-}
+};
