@@ -6,7 +6,6 @@ export type Letter = { c: string, state: LetterState }
 export type Word = Letter[];
 
 interface GameState {
-  mode: "daily" | "any"
   words: {
     dailyWord: string | null;
     word: string | null;
@@ -36,7 +35,6 @@ interface GameState {
 }
 
 const defaultState: GameState = {
-  mode: "any",
   words: {
     dailyWord: null,
     word: null,
@@ -527,23 +525,8 @@ export function useGameState() {
     });
   }, []);
 
-  // ==
 
-  const setMode = useCallback((m: "any" | "daily") => {
-    if (dwLoading) return;
-    setGs(prev => ({
-      ...prev,
-      mode: m
-    }));
-  }, [dwLoading]);
 
-  const toggleMode = useCallback(() => {
-    if (dwLoading) return;
-    setGs(prev => ({
-      ...prev,
-      mode: prev.mode === "any" ? "daily" : "any"
-    }));
-  }, [dwLoading]);
 
   useEffect(() => {
     if (!gs.timer.running) return;
@@ -588,69 +571,10 @@ export function useGameState() {
     }
   }, [words, gs.words.word, setWord]);
 
-  useEffect(() => {
-    const gdw = async () => {
-      try {
-        const res = await fetch("/api/words");
-        console.log(res);
-        const rows = await res.json();
-        const words: {date: string, word: string}[] = rows.map(([date, word]: [string, string]) => ({
-          date,
-          word
-        }))
-
-        const today = new Date();
-        const month = (today.getMonth() + 1).toString().padStart(2, '0'); 
-        const day = today.getDate().toString().padStart(2, '0'); 
-        const year = today.getFullYear();
-
-        const formattedDate = `${month}/${day}/${year}`;
-        const todaysWord = words.find((word: {date: string, word: string}) => word.date === formattedDate);
-
-        if (todaysWord) {
-          setGs(prev => ({
-            ...prev,
-            words: {
-              ...prev.words,
-              dailyWord: todaysWord.word
-            }
-          }));
-          setDwLoading(false);
-        } else {
-          console.error("Could not find the daily word for today. Defaulting.");
-          setGs(prev => ({
-            ...prev,
-            words: {
-              ...prev.words,
-              dailyWord: "WORDY"
-            }
-          }));
-        }
-      } catch (err: any) {
-        console.error(err);
-      }
-    }
-
-    gdw();
-  }, []);
-
-  useEffect(() => {
-    if (gs.mode === "daily") {
-      setGs(prev => ({
-        ...prev,
-        words: {
-          ...prev.words,
-          word: prev.words.dailyWord
-        }
-      }))
-    }
-  }, [gs.mode]);
 
   return {
     gs,
     loading,
-
-    toggleMode,
 
     resetGameState,
 
@@ -695,7 +619,6 @@ export function useGameState() {
       setMaxTime,
       setTimePenalty,
       setTimerRunning,
-      setMode
     },
   };
 }

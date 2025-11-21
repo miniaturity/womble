@@ -369,8 +369,8 @@ const Stats: React.FC<{ g: GameStateType }> = ({ g }) => {
       </div>
       <div className="space"></div>
       <div id="lbuttons_container">
-        <button id="mode" onClick={() => g.toggleMode()}>
-          {g.gs.mode === "any" ? "play daily" : "play random"}
+        <button id="mode">
+          daily (wip)
         </button>
       </div>
     </div>
