@@ -1,6 +1,6 @@
 ## womble
 
-made 4 midnight and 4 fun
+wordle inspired game made in ts/react. fully frontend.
 get a score of a billion or somethig
 
 clone this repo & run
