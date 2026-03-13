@@ -152,7 +152,6 @@ export function useGameState() {
   const [words, setWords] = useState<string[]>();
   const [xords, setXords] =   useState<string[]>();
   const [loading, setLoading] = useState<boolean>(true);
-  const [dwLoading, setDwLoading] = useState<boolean>(true);
 
   const handleSetHighscore = useCallback((n: number) => {
     setHighScore({ hs: n });
